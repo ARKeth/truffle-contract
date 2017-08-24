@@ -150,44 +150,58 @@ var contract = (function(module) {
 
         tx_params = Utils.merge(C.class_defaults, tx_params);
 
-        return C.detectNetwork().then(function() {
-          return new Promise(function(accept, reject) {
-            var callback = function(error, tx) {
-              if (error != null) {
-                reject(error);
-                return;
-              }
+        let resolveDone;
+        let rejectDone;
+        const donePromise = new Promise((res, rej) => {
+          resolveDone = res;
+          rejectDone = rej;
+        });
 
-              var timeout = C.synchronization_timeout || 240000;
-              var start = new Date().getTime();
+        let resolveTxHash;
+        let rejectTxHash;
+        const txPromise = new Promise((res, rej) => {
+          resolveTxHash = res;
+          rejectTxHash = rej;
+        });
+        C.detectNetwork().then(function() {
+          var callback = function(error, tx) {
+            if (error) {
+              rejectDone(error);
+              rejectTxHash(error);
+              return;
+            }
+            resolveTxHash(tx);
 
-              var make_attempt = function() {
-                C.web3.eth.getTransactionReceipt(tx, function(err, receipt) {
-                  if (err) return reject(err);
+            var timeout = C.synchronization_timeout || 240000;
+            var start = new Date().getTime();
 
-                  if (receipt != null) {
-                    return accept({
-                      tx: tx,
-                      receipt: receipt,
-                      logs: Utils.decodeLogs(C, instance, receipt.logs)
-                    });
-                  }
+            var make_attempt = function() {
+              C.web3.eth.getTransactionReceipt(tx, function(err, receipt) {
+                if (err) return rejectDone(err);
 
-                  if (timeout > 0 && new Date().getTime() - start > timeout) {
-                    return reject(new Error("Transaction " + tx + " wasn't processed in " + (timeout / 1000) + " seconds!"));
-                  }
+                if (receipt != null) {
+                  return resolveDone({
+                    tx: tx,
+                    receipt: receipt,
+                    logs: Utils.decodeLogs(C, instance, receipt.logs)
+                  });
+                }
 
-                  setTimeout(make_attempt, 1000);
-                });
-              };
+                if (timeout > 0 && new Date().getTime() - start > timeout) {
+                  return rejectDone(new Error("Transaction " + tx + " wasn't processed in " + (timeout / 1000) + " seconds!"));
+                }
 
-              make_attempt();
+                setTimeout(make_attempt, 1000);
+              });
             };
 
-            args.push(tx_params, callback);
-            fn.apply(self, args);
-          });
+            make_attempt();
+          };
+
+          args.push(tx_params, callback);
+          fn.apply(self, args);
         });
+        return [txPromise, donePromise];
       };
     },
     merge: function() {
