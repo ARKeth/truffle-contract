@@ -40,7 +40,7 @@ var contract = (function(module) {
         return false;
       }
     },
-    decodeLogs: function(C, instance, logs) {
+    decodeLogs: function(C, instance, logs, tx) {
       return logs.map(function(log) {
         var logABI = C.events[log.topics[0]];
 
@@ -99,7 +99,7 @@ var contract = (function(module) {
 
         delete copy.data;
         delete copy.topics;
-
+        copy.transactionHash = tx;
         return copy;
       }).filter(function(log) {
         return log != null;
@@ -179,11 +179,11 @@ var contract = (function(module) {
               C.web3.eth.getTransactionReceipt(tx, function(err, receipt) {
                 if (err) return rejectDone(err);
 
-                if (receipt != null) {
+                if (receipt) {
                   return resolveDone({
                     tx: tx,
                     receipt: receipt,
-                    logs: Utils.decodeLogs(C, instance, receipt.logs)
+                    logs: Utils.decodeLogs(C, instance, receipt.logs, tx)
                   });
                 }
 
