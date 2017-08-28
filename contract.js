@@ -150,16 +150,16 @@ var contract = (function(module) {
 
         tx_params = Utils.merge(C.class_defaults, tx_params);
 
-        let resolveDone;
-        let rejectDone;
-        const donePromise = new Promise((res, rej) => {
+        var resolveDone;
+        var rejectDone;
+        const donePromise = new Promise(function(res, rej) {
           resolveDone = res;
           rejectDone = rej;
         });
 
-        let resolveTxHash;
-        let rejectTxHash;
-        const txPromise = new Promise((res, rej) => {
+        var resolveTxHash;
+        var rejectTxHash;
+        const txPromise = new Promise(function(res, rej) {
           resolveTxHash = res;
           rejectTxHash = rej;
         });
