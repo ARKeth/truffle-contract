@@ -1,5 +1,7 @@
 var Schema = require("truffle-contract-schema");
 var Contract = require("./contract.js");
+// reuire('rxjs/add/operator/map');
+// require('rxjs/add/operator/filter');
 
 var contract = function(options) {
   options = Schema.normalizeOptions(options);
@@ -58,6 +60,36 @@ contract.fromSolJS = function(soljs_abstraction, ignore_default_network) {
 };
 
 module.exports = contract;
+
+
+// function once(
+//   this,
+//   type,
+//   fn
+// ) {
+//   return this.map(
+//     function (result){
+//       return result.type === type ? fn(result.value) : result
+//     }
+//   );
+// }
+
+// function on(
+//   this,
+//   type,
+//   fn
+// ) {
+//   return this
+//   .filter(function(next) { return !(next && next.type === 'tx') })
+//   .map(
+//     function (result) {
+//       result.type === type ? fn(result.value) : result      
+//     }
+//   )
+// }
+
+// Observable.prototype.once = once;
+// Observable.prototype.on = on;
 
 if (typeof window !== "undefined") {
   window.TruffleContract = contract;

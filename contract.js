@@ -1,6 +1,7 @@
 var ethJSABI = require("ethjs-abi");
 var BlockchainUtils = require("truffle-blockchain-utils");
 var Web3 = require("web3");
+var Observable = require("rxjs/Observable").Observable;
 
 // For browserified version. If browserify gave us an empty version,
 // look for the one provided by the user.
@@ -150,58 +151,53 @@ var contract = (function(module) {
 
         tx_params = Utils.merge(C.class_defaults, tx_params);
 
-        var resolveDone;
-        var rejectDone;
-        const donePromise = new Promise(function(res, rej) {
-          resolveDone = res;
-          rejectDone = rej;
-        });
-
-        var resolveTxHash;
-        var rejectTxHash;
-        const txPromise = new Promise(function(res, rej) {
-          resolveTxHash = res;
-          rejectTxHash = rej;
-        });
-        C.detectNetwork().then(function() {
-          var callback = function(error, tx) {
-            if (error) {
-              rejectDone(error);
-              rejectTxHash(error);
-              return;
-            }
-            resolveTxHash(tx);
-
-            var timeout = C.synchronization_timeout || 240000;
-            var start = new Date().getTime();
-
-            var make_attempt = function() {
-              C.web3.eth.getTransactionReceipt(tx, function(err, receipt) {
-                if (err) return rejectDone(err);
-
-                if (receipt) {
-                  return resolveDone({
-                    tx: tx,
-                    receipt: receipt,
-                    logs: Utils.decodeLogs(C, instance, receipt.logs, tx)
-                  });
-                }
-
-                if (timeout > 0 && new Date().getTime() - start > timeout) {
-                  return rejectDone(new Error("Transaction " + tx + " wasn't processed in " + (timeout / 1000) + " seconds!"));
-                }
-
-                setTimeout(make_attempt, 1000);
-              });
+        return Observable.create(function(observer) {
+          C.detectNetwork().then(function() {
+            var callback = function(error, tx) {
+              if (error) {
+                observer.error(error);
+                return;
+              }
+              observer.next({ type: 'tx', value: tx });
+  
+              var timeout = C.synchronization_timeout || 240000;
+              var start = new Date().getTime();
+  
+              var make_attempt = function() {
+                C.web3.eth.getTransactionReceipt(tx, function(err, receipt) {
+                  if (err) {
+                    observer.error(error);
+                    return;
+                  }
+  
+                  if (receipt) {
+                    observer.next({
+                      type: 'confirmation',
+                      value: {
+                        tx: tx,
+                        receipt: receipt,
+                        logs: Utils.decodeLogs(C, instance, receipt.logs, tx)
+                      }
+                    });
+                    observer.complete();
+                    return; 
+                  }
+  
+                  if (timeout > 0 && new Date().getTime() - start > timeout) {
+                    return observer.error(new Error("Transaction " + tx + " wasn't processed in " + (timeout / 1000) + " seconds!"));
+                  }
+  
+                  setTimeout(make_attempt, 1000);
+                });
+              };
+  
+              make_attempt();
             };
-
-            make_attempt();
-          };
-
-          args.push(tx_params, callback);
-          fn.apply(self, args);
+  
+            args.push(tx_params, callback);
+            fn.apply(self, args);
+          });
         });
-        return [txPromise, donePromise];
       };
     },
     merge: function() {
