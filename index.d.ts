@@ -21,35 +21,78 @@ export type ObservableTransactionResult<T> = Observable<
   TransationResultEvent<T>
 >;
 
-type MiddlewareHook = <T>(obs: ObservableTransactionResult<T>) => ObservableTransactionResult<T>;
+type MiddlewareHook = <T>(
+  obs: ObservableTransactionResult<T>
+) => ObservableTransactionResult<T>;
 
 export interface Middleware {
   postTransaction: MiddlewareHook;
 }
 
-export type TruffleContract<T> = T & {
-  hookMiddleware(middleware: Middleware): void;
+interface ContractDefaults {
+  from?: string;
+  gas?: string;
+  gasPrice?: string;
+  value?: string;
+}
+
+interface TransactionOptions {}
+
+interface InputDefinition {
+  indexed: boolean;
+  name: string;
+  type: string;
+}
+
+interface EventDefintion {
+  anonymous: boolean;
+  inputs: InputDefinition[];
+  name: string;
+  type: 'event';
+}
+
+interface NetworkDefinition {
+  address: string;
+  events: { [topic: string]: EventDefintion };
+  links: {};
+  updated_at: number;
+}
+
+export type ContractInstance<T> = T & {
   allEvents: any;
   address: string;
-  setProvider(provider: any): void;
-  link(contract: any): void;
-  deployed(): Promise<TruffleContract<T>>;
+  abi: any[];
+  contract: any;
+  send(value: string): void;
+  sendTransaction(options: {}): void;
+  transactionHash: string | null;
+  constructor: TruffleContract<T>;
 };
 
-// declare module 'rxjs/Observable' {
-//   // tslint:disable-next-line:interface-name no-shadowed-variable
-//   interface Observable<T> {
-//     once<T, R>(
-//       this: TransationResultEvent<T>,
-//       type: 'tx',
-//       fn: (x: T) => R
-//     ): TransationConfirmationEvent<T> | Observable<R>;
-//     on<T, R>(
-//       this: TransationConfirmationEvent<T>,
-//       type: 'confirmation',
-//       fn: (x: T) => R
-//     ): Observable<R>;
-//   }
-// }
+export type TruffleContract<T> = {
+  abi: any[];
+  addProp(): void;
+  at(address: string): void;
+  new (...args: any[]): void;
+  setProvider(provider: any): void;
+  hookMiddleware(middleware: Middleware): void;
+  deployed(): Promise<ContractInstance<T>>;
+  link(contract: TruffleContract<any>): void;
+  link(name: string, address: string): void;
+  networks: NetworkDefinition[];
+  network: NetworkDefinition;
+  setNetwork(networkId: string): void;
+  hasNetwork(networkId: string): boolean;
+  defaults(defaults: ContractDefaults): void;
+  clone(networkId: string): TruffleContract<T>;
+};
 
-export default function<T>(options: any): TruffleContract<T>;
+declare module 'rxjs/Observable' {
+  // tslint:disable-next-line:interface-name no-shadowed-variable
+  interface Observable<T> {
+    once(this: Observable<any>, type: "tx", fn: Function): Observable<T>
+    on(this: Observable<any>, type: "confirmation", fn: Function): Observable<T>
+  }
+}
+
+export default function<T>(definition: any): TruffleContract<T>;
