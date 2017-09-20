@@ -32,6 +32,7 @@ export type TruffleContract<T> = T & {
   allEvents: any;
   address: string;
   setProvider(provider: any): void;
+  link(contract: any): void;
   deployed(): Promise<TruffleContract<T>>;
 };
 
