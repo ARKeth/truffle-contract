@@ -23,7 +23,7 @@ export type ObservableTransactionResult<T> = Observable<
 
 type MiddlewareHook = <T>(obs: ObservableTransactionResult<T>) => ObservableTransactionResult<T>;
 
-interface Middleware {
+export interface Middleware {
   postTransaction: MiddlewareHook;
 }
 
