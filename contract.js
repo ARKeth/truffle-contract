@@ -653,10 +653,8 @@ var contract = (function(module) {
       return this._json;
     },
 
-    hookMiddleware: function({ postTransaction }) {
-      this.middleware = {
-        postTransaction
-      };
+    hookMiddleware: function(middleware) {
+      this.middleware = middleware;
     }
   };
 
