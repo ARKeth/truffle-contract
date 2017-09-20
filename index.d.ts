@@ -21,7 +21,14 @@ export type ObservableTransactionResult<T> = Observable<
   TransationResultEvent<T>
 >;
 
+type MiddlewareHook = <T>(obs: ObservableTransactionResult<T>) => ObservableTransactionResult<T>;
+
+interface Middleware {
+  postTransaction: MiddlewareHook;
+}
+
 export type TruffleContract<T> = T & {
+  hookMiddleware(middleware: Middleware): void;
   allEvents: any;
   address: string;
   setProvider(provider: any): void;

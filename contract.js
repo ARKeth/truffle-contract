@@ -2,6 +2,7 @@ var ethJSABI = require("ethjs-abi");
 var BlockchainUtils = require("truffle-blockchain-utils");
 var Web3 = require("web3");
 var Observable = require("rxjs/Observable").Observable;
+require('rxjs/add/operator/let');
 
 // For browserified version. If browserify gave us an empty version,
 // look for the one provided by the user.
@@ -197,7 +198,8 @@ var contract = (function(module) {
             args.push(tx_params, callback);
             fn.apply(self, args);
           });
-        });
+        })
+        .let(C.middleware.postTransaction || function(obs) { return obs });
       };
     },
     merge: function() {
@@ -598,6 +600,7 @@ var contract = (function(module) {
 
       temp._property_values = {};
       temp._json = json || {};
+      temp._middleware = {};
 
       Utils.bootstrap(temp);
 
@@ -648,6 +651,12 @@ var contract = (function(module) {
 
     toJSON: function() {
       return this._json;
+    },
+
+    hookMiddleware: function({ postTransaction }) {
+      this.middleware = {
+        postTransaction
+      };
     }
   };
 
@@ -793,6 +802,14 @@ var contract = (function(module) {
         return this.network.updated_at || this._json.updated_at;
       } catch (e) {
         return this._json.updated_at;
+      }
+    },
+    middleware: {
+      get: function() {
+        return this._middleware || {};
+      },
+      set: function(val) {
+        this._middleware = val;
       }
     }
   };
