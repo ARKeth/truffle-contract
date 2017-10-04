@@ -172,6 +172,15 @@ var contract = (function(module) {
                   }
   
                   if (receipt) {
+                    // THIS IS A WORKAROUND FOR https://github.com/MetaMask/metamask-extension/issues/1952
+                    // Based on gas usage equal to gas limit and lack of logs we assume that something went wrong on-chain
+                    // it will miss case when user modify the gas limit since we have nothing to compare gasUsed to
+                    const gasLimit = parseInt(tx_params.gas, 16);
+                    if (gasLimit === receipt.gasUsed && receipt.logs.length === 0) {
+                      observer.error(new Error("On-chain error"));
+                      return;
+                    }
+
                     observer.next({
                       type: 'confirmation',
                       value: {
