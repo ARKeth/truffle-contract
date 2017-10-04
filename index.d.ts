@@ -72,7 +72,7 @@ export type ContractInstance<T> = T & {
 export type TruffleContract<T> = {
   abi: any[];
   addProp(): void;
-  at(address: string): void;
+  at(address: string): Promise<ContractInstance<T>>;
   new (...args: any[]): void;
   setProvider(provider: any): void;
   hookMiddleware(middleware: Middleware): void;
